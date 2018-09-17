@@ -113,7 +113,7 @@ trait CreateTask {
   type Req = CreateTaskRequest
   type Res = CreateTaskResponse
 
-  implicit val apiRequestEncoder: Encoder[Req]  = deriveEncoder
+  implicit val apiRequestEncoder: Encoder[Req] = deriveEncoder
   implicit val apiResponseDecoder: Decoder[Res] = deriveDecoder
 
   def buildRequest(req: Req): HttpRequest = {
