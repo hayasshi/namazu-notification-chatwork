@@ -4,11 +4,12 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model._
-import akka.stream.scaladsl.Sink
 import akka.stream.{ ActorMaterializer, Materializer }
-import akka.util.ByteString
-import spray.json.DefaultJsonProtocol._
-import spray.json.JsonFormat
+import com.github.hayasshi.n2.chatwork.api.ChatWorkApi.ChatWorkApiResponseError
+import io.circe._
+import io.circe.generic.semiauto._
+import io.circe.parser._
+import io.circe.syntax._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.reflectiveCalls
@@ -21,14 +22,14 @@ object ChatWorkApi {
 
   case class ChatWorkApiResponseError(message: String) extends Exception(message)
 
-  val jsonFormatErrorResponse: JsonFormat[ErrorResponse] = jsonFormat1(ErrorResponse)
+  val errorResponseDecoder: Decoder[ErrorResponse] = deriveDecoder
 
 }
 
 trait EndPointModule {
   type Req
   type Res
-  def jsonFormatResponse: JsonFormat[Res]
+  implicit def apiResponseDecoder: Decoder[Res]
   def buildRequest(request: Req): HttpRequest
 }
 
@@ -48,9 +49,16 @@ trait ChatWorkApiClient { self: EndPointModule =>
     implicit val ec: ExecutionContext = mat.executionContext
     httpResponse.entity.dataBytes.runReduce(_ ++ _).map { bs =>
       if (httpResponse.status.isSuccess())
-        ???
-      else
-        ???
+        decode[Res](bs.utf8String) match {
+          case Right(r) => r
+          case Left(e) => throw e
+        }
+      else {
+        decode(bs.utf8String)(ChatWorkApi.errorResponseDecoder) match {
+          case Right(r) => throw ChatWorkApiResponseError("chatwork api occurred error.\n" + r.errors.mkString("\n"))
+          case Left(e) => throw e
+        }
+      }
     }
   }
 
@@ -69,7 +77,7 @@ trait GetMe extends EndPointModule {
   type Req = GetMeRequest
   type Res = GetMeResponse
 
-  val jsonFormatResponse: JsonFormat[Res] = jsonFormat6(GetMeResponse)
+  implicit val apiResponseDecoder: Decoder[Res] = deriveDecoder
 
   def buildRequest(request: Req): HttpRequest = {
     HttpRequest(GET, Uri(s"${ChatWorkApi.baseUrl}/me"))
@@ -88,7 +96,7 @@ trait GetMemberList {
   type Req = GetMemberListRequest
   type Res = GetMemberListResponse
 
-  implicit val jsonFormatResponse: JsonFormat[Res] = jsonFormat6(GetMemberListResponse)
+  implicit val apiResponseDecoder: Decoder[Res] = deriveDecoder
 
   def buildRequest(req: Req): HttpRequest = {
     HttpRequest(GET, Uri(s"${ChatWorkApi.baseUrl}/rooms/${req.room_id}/members"))
@@ -105,11 +113,11 @@ trait CreateTask {
   type Req = CreateTaskRequest
   type Res = CreateTaskResponse
 
-  val jsonFormatRequest: JsonFormat[Req] = jsonFormat4(CreateTaskRequest)
-  val jsonFormatResponse: JsonFormat[Res] = jsonFormat1(CreateTaskResponse)
+  implicit val apiRequestEncoder: Encoder[Req]  = deriveEncoder
+  implicit val apiResponseDecoder: Decoder[Res] = deriveDecoder
 
   def buildRequest(req: Req): HttpRequest = {
-    val body = jsonFormatRequest.write(req).compactPrint
+    val body = req.asJson.noSpaces
     val entity = HttpEntity(ContentTypes.`application/json`, body)
     HttpRequest(POST, Uri(s"${ChatWorkApi.baseUrl}/rooms/${req.room_id}/tasks"), entity = entity)
   }
