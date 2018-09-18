@@ -46,7 +46,10 @@ object N2ChatWork extends App {
     }
   }
 
-  val serverBind = Http().bindAndHandle(route, "", 8080)
+  val host = "0.0.0.0"
+  val port = 8080
+  system.log.info(s"Starting server $host:$port")
+  val serverBind = Http().bindAndHandle(route, host, port)
   sys.addShutdownHook({
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.duration._

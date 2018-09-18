@@ -1,3 +1,5 @@
+import sbt.Keys.mainClass
+
 lazy val akkaHttpVersion = "10.1.4"
 lazy val akkaVersion     = "2.5.16"
 lazy val circeVersion    = "0.9.3"
@@ -22,6 +24,13 @@ lazy val root = (project in file(".")).
       "io.circe" %% "circe-parser"  % circeVersion,
 
       "org.scalatest"     %% "scalatest"            % "3.0.5"         % Test
-
-    )
-  )
+    ),
+    // docker settings
+    packageName in Docker := name.value,
+    defaultLinuxInstallLocation in Docker := "/opt/n2chatwork",
+    executableScriptName := "app",
+    dockerBaseImage := "openjdk:8u171-jdk-alpine3.8",
+    dockerUpdateLatest := true,
+    mainClass in (Compile, bashScriptDefines) := Some("com.github.hayasshi.n2.chatwork.N2ChatWork"),
+    dockerExposedPorts := Seq(8080),
+  ).enablePlugins(AshScriptPlugin)
