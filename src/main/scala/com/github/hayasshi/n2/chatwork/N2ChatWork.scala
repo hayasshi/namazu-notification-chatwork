@@ -46,8 +46,8 @@ object N2ChatWork extends App {
     }
   }
 
-  val host = "0.0.0.0"
-  val port = 8080
+  val host = config.getString("n2.host")
+  val port = config.getInt("n2.port")
   system.log.info(s"Starting server $host:$port")
   val serverBind = Http().bindAndHandle(route, host, port)
   sys.addShutdownHook({

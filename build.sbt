@@ -1,3 +1,4 @@
+import com.typesafe.sbt.packager.docker.ExecCmd
 import sbt.Keys.mainClass
 
 lazy val akkaHttpVersion = "10.1.4"
@@ -32,5 +33,13 @@ lazy val root = (project in file(".")).
     dockerBaseImage := "openjdk:8u171-jdk-alpine3.8",
     dockerUpdateLatest := true,
     mainClass in (Compile, bashScriptDefines) := Some("com.github.hayasshi.n2.chatwork.N2ChatWork"),
-    dockerExposedPorts := Seq(8080),
+    // dockerExposedPorts := Seq(8080), // omit for Heroku
+    // Run the app.  CMD is required to run on Heroku
+    dockerCommands := dockerCommands.value.filter {
+      case ExecCmd("CMD", _*) => false
+      case _ => true
+    }.map {
+      case ExecCmd("ENTRYPOINT", args @ _*) => ExecCmd("CMD", args: _*)
+      case other => other
+    }
   ).enablePlugins(AshScriptPlugin)
