@@ -31,6 +31,8 @@ object N2ChatWork extends App {
         implicit val ec: ExecutionContext = ctx.materializer.executionContext
         val f = for {
           body <- ctx.request.entity.dataBytes.runReduce(_ ++ _).map(_.utf8String)
+          _ = ctx.log.debug(ctx.request.headers.mkString("\n"))
+          _ = ctx.log.debug(body)
           things = decode[YahooMyThings](body).fold[YahooMyThings](throw _, identity)
           _ = things.values.foreach(actionWhenEarthQuake)
         } yield ()
