@@ -24,7 +24,7 @@ lazy val root = (project in file(".")).
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-parser"  % circeVersion,
 
-      "org.scalatest"     %% "scalatest"            % "3.0.5"         % Test
+      "org.scalatest" %% "scalatest" % "3.0.5" % Test
     ),
     // docker settings
     packageName in Docker := name.value,
