@@ -25,7 +25,11 @@ object N2ChatWork extends App {
       extractRequestContext { ctx =>
 
         def actionWhenEarthQuake(quake: YahooEarthQuake): Unit = {
-          ctx.log.info(s"${quake.occurrence_date} ${quake.occurrence_time} ${quake.place_name} で 震度'${quake.intensity}', 最大震度'${quake.max_intensity}' の地震が発生しました。詳細は ${quake.url} を確認してください。")
+          val intensity = quake.intensity.toInt
+          val maxIntensity = quake.intensity.toInt
+          if (intensity > thresholdIntensity || maxIntensity > thresholdIntensity) {
+            ctx.log.info(s"${quake.occurrence_date} ${quake.occurrence_time} ${quake.place_name} で 震度'${quake.intensity}', 最大震度'${quake.max_intensity}' の地震が発生しました。詳細は ${quake.url} を確認してください。")
+          }
         }
 
         implicit val ec: ExecutionContext = ctx.materializer.executionContext
