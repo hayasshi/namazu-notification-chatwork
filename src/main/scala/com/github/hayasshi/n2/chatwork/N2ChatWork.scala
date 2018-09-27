@@ -33,7 +33,8 @@ object N2ChatWork extends App {
           body <- ctx.request.entity.dataBytes.runReduce(_ ++ _).map(_.utf8String)
           _ = ctx.log.debug(ctx.request.headers.mkString("\n"))
           _ = ctx.log.debug(body)
-          things = decode[YahooMyThings](body).fold[YahooMyThings](throw _, identity)
+          rawThings = decode[YahooMyThings](body).fold[YahooMyThings](throw _, identity)
+          things = removeTestWords(rawThings)
           _ = things.values.foreach(actionWhenEarthQuake)
         } yield ()
 
@@ -46,6 +47,19 @@ object N2ChatWork extends App {
         }
       }
     }
+  }
+
+  def removeTestWords(myThings: YahooMyThings): YahooMyThings = {
+    def eraseTest(s: String): String = s.replace("＜テスト実行＞", "")
+    myThings.copy(values = myThings.values.map { quake =>
+      quake.copy(
+        place_name = eraseTest(quake.place_name),
+        intensity = eraseTest(quake.intensity),
+        max_intensity = eraseTest(quake.max_intensity),
+        occurrence_date = eraseTest(quake.occurrence_date),
+        occurrence_time = eraseTest(quake.occurrence_time),
+        url = eraseTest(quake.url))
+    })
   }
 
   val host = config.getString("n2.host")
