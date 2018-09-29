@@ -1,5 +1,6 @@
 import com.typesafe.sbt.packager.docker.ExecCmd
 import sbt.Keys.mainClass
+import scalariform.formatter.preferences._
 
 lazy val akkaHttpVersion = "10.1.4"
 lazy val akkaVersion     = "2.5.16"
@@ -26,6 +27,11 @@ lazy val root = (project in file(".")).
 
       "org.scalatest" %% "scalatest" % "3.0.5" % Test
     ),
+    // scalariform settings
+    scalariformPreferences := scalariformPreferences.value
+      .setPreference(AlignSingleLineCaseStatements,    true)
+      .setPreference(DoubleIndentConstructorArguments, true)
+      .setPreference(DanglingCloseParenthesis, Preserve),
     // docker settings
     packageName in Docker := name.value,
     defaultLinuxInstallLocation in Docker := "/opt/n2chatwork",

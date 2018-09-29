@@ -51,12 +51,12 @@ trait ChatWorkApiClient { self: EndPointModule =>
       if (httpResponse.status.isSuccess())
         decode[Res](bs.utf8String) match {
           case Right(r) => r
-          case Left(e) => throw e
+          case Left(e)  => throw e
         }
       else {
         decode(bs.utf8String)(ChatWorkApi.errorResponseDecoder) match {
           case Right(r) => throw ChatWorkApiResponseError("chatwork api occurred error.\n" + r.errors.mkString("\n"))
-          case Left(e) => throw e
+          case Left(e)  => throw e
         }
       }
     }
@@ -66,12 +66,13 @@ trait ChatWorkApiClient { self: EndPointModule =>
 
 case class GetMeRequest()
 case class GetMeResponse(
-  account_id: Long,
-  room_id: Long,
-  name: String,
-  organization_id: Long,
-  avatar_image_url: String,
-  login_mail: String)
+    account_id: Long,
+    room_id: Long,
+    name: String,
+    organization_id: Long,
+    avatar_image_url: String,
+    login_mail: String
+)
 
 trait GetMe extends EndPointModule {
   type Req = GetMeRequest
@@ -86,12 +87,13 @@ trait GetMe extends EndPointModule {
 
 case class GetMemberListRequest(room_id: Long)
 case class GetMemberListResponse(
-  account_id: Long,
-  role: String,
-  name: String,
-  organization_id: Long,
-  organization_name: String,
-  avatar_image_url: String)
+    account_id: Long,
+    role: String,
+    name: String,
+    organization_id: Long,
+    organization_name: String,
+    avatar_image_url: String
+)
 trait GetMemberList {
   type Req = GetMemberListRequest
   type Res = GetMemberListResponse
@@ -104,10 +106,11 @@ trait GetMemberList {
 }
 
 case class CreateTaskRequest(
-  room_id: Long,
-  body: String,
-  limit: Long, // epoch times
-  to_ids: Seq[Long])
+    room_id: Long,
+    body: String,
+    limit: Long, // epoch times
+    to_ids: Seq[Long]
+)
 case class CreateTaskResponse(task_ids: Seq[Long])
 trait CreateTask {
   type Req = CreateTaskRequest
