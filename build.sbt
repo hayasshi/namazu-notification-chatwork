@@ -37,6 +37,10 @@ lazy val root = (project in file(".")).
     defaultLinuxInstallLocation in Docker := "/opt/n2chatwork",
     executableScriptName := "app",
     dockerBaseImage := "openjdk:8u171-jdk-alpine3.8",
+    dockerEnvVars := Map(
+      "TARGET_ROOM_ID"      -> sys.env.getOrElse("TARGET_ROOM_ID", "0"),
+      "THRESHOLD_INTENSITY" -> sys.env.getOrElse("THRESHOLD_INTENSITY", "5"),
+    ),
     dockerUpdateLatest := true,
     mainClass in (Compile, bashScriptDefines) := Some("com.github.hayasshi.n2.chatwork.N2ChatWork"),
     // dockerExposedPorts := Seq(8080), // omit for Heroku
