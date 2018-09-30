@@ -4,14 +4,15 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model._
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.stream.{ActorMaterializer, Materializer}
 import com.github.hayasshi.n2.chatwork.api.ChatWorkApi.ChatWorkApiResponseError
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.parser._
 import io.circe.syntax._
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.reflectiveCalls
 
 object ChatWorkApi {
@@ -26,6 +27,10 @@ object ChatWorkApi {
 
 }
 
+case class ChatWorkApiSetting(
+  apiToken: String
+)
+
 trait EndPointModule {
   type Req
   type Res
@@ -35,12 +40,14 @@ trait EndPointModule {
 
 trait ChatWorkApiClient { self: EndPointModule =>
 
-  def request(req: Req)(implicit mat: ActorMaterializer): Future[Res] = {
+  def request(setting: ChatWorkApiSetting)(req: Req)(implicit mat: ActorMaterializer): Future[Res] = {
     implicit val system: ActorSystem = mat.system
     implicit val ec: ExecutionContext = mat.executionContext
 
+    val buildReq = buildRequest(req)
+    val httpRequest = buildReq.withHeaders(RawHeader("X-ChatWorkToken", setting.apiToken) +: buildReq.headers)
     for {
-      httpResponse <- Http().singleRequest(buildRequest(req))
+      httpResponse <- Http().singleRequest(httpRequest)
       response <- extractResponse(httpResponse)
     } yield response
   }
@@ -94,7 +101,7 @@ case class GetMemberListResponse(
     organization_name: String,
     avatar_image_url: String
 )
-trait GetMemberList {
+trait GetMemberList extends EndPointModule {
   type Req = GetMemberListRequest
   type Res = GetMemberListResponse
 
@@ -112,7 +119,7 @@ case class CreateTaskRequest(
     to_ids: Seq[Long]
 )
 case class CreateTaskResponse(task_ids: Seq[Long])
-trait CreateTask {
+trait CreateTask extends EndPointModule {
   type Req = CreateTaskRequest
   type Res = CreateTaskResponse
 

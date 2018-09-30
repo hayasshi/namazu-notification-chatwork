@@ -5,9 +5,10 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import com.github.hayasshi.n2.chatwork.api._
 
-import scala.concurrent.{ Await, ExecutionContext }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{Await, ExecutionContext}
+import scala.util.{Failure, Success}
 
 object N2ChatWork extends App {
 
@@ -17,6 +18,11 @@ object N2ChatWork extends App {
 
   val roomId = system.settings.config.getInt("n2.chatwork.target-room-id")
   val thresholdIntensity = system.settings.config.getInt("n2.chatwork.threshold-intensity")
+
+  val apiSetting = ChatWorkApiSetting(config.getString("n2.chatwork.api.token"))
+  val getMeRequest = (new ChatWorkApiClient with GetMe).request(apiSetting)
+  val getMemberListRequest = (new ChatWorkApiClient with GetMemberList).request(apiSetting)
+  val createTaskRequest = (new ChatWorkApiClient with CreateTask).request(apiSetting)
 
   import io.circe.generic.auto._
   import io.circe.parser._

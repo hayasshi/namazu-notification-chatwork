@@ -40,6 +40,7 @@ lazy val root = (project in file(".")).
     dockerEnvVars := Map(
       "TARGET_ROOM_ID"      -> sys.env.getOrElse("TARGET_ROOM_ID", "0"),
       "THRESHOLD_INTENSITY" -> sys.env.getOrElse("THRESHOLD_INTENSITY", "5"),
+      "CHATWORK_API_TOKEN"  -> sys.env.getOrElse("CHATWORK_API_TOKEN", "")
     ),
     dockerUpdateLatest := true,
     mainClass in (Compile, bashScriptDefines) := Some("com.github.hayasshi.n2.chatwork.N2ChatWork"),
