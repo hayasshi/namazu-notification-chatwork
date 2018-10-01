@@ -2,6 +2,7 @@ package com.github.hayasshi.n2.chatwork.api
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
@@ -34,7 +35,7 @@ case class ChatWorkApiSetting(
 trait EndPointModule {
   type Req
   type Res
-  implicit def apiResponseDecoder: Decoder[Res]
+  def apiResponseDecoder: Decoder[Res]
   def buildRequest(request: Req): HttpRequest
 }
 
@@ -57,7 +58,7 @@ trait ChatWorkApiClient { self: EndPointModule =>
     httpResponse.entity.dataBytes.runReduce(_ ++ _).map { bs =>
       println(bs.utf8String)
       if (httpResponse.status.isSuccess())
-        decode[Res](bs.utf8String) match {
+        decode[Res](bs.utf8String)(apiResponseDecoder) match {
           case Right(r) => r
           case Left(e)  => throw e
         }
@@ -86,7 +87,7 @@ trait GetMe extends EndPointModule {
   type Req = GetMeRequest
   type Res = GetMeResponse
 
-  implicit val apiResponseDecoder: Decoder[Res] = deriveDecoder
+  val apiResponseDecoder: Decoder[Res] = deriveDecoder
 
   def buildRequest(request: Req): HttpRequest = {
     HttpRequest(GET, Uri(s"${ChatWorkApi.baseUrl}/me"))
@@ -104,9 +105,9 @@ case class GetMemberListResponse(
 )
 trait GetMemberList extends EndPointModule {
   type Req = GetMemberListRequest
-  type Res = Seq[GetMemberListResponse]
+  type Res = Vector[GetMemberListResponse]
 
-  implicit val apiResponseDecoder: Decoder[Res] = deriveDecoder
+  val apiResponseDecoder: Decoder[Res] = Decoder.decodeVector(deriveDecoder[GetMemberListResponse])
 
   def buildRequest(req: Req): HttpRequest = {
     HttpRequest(GET, Uri(s"${ChatWorkApi.baseUrl}/rooms/${req.room_id}/members"))
@@ -116,7 +117,7 @@ trait GetMemberList extends EndPointModule {
 case class CreateTaskRequest(
     room_id: Long,
     body: String,
-    limit: Long, // epoch times
+    limit: Option[Long], // epoch times
     to_ids: Seq[Long]
 )
 case class CreateTaskResponse(task_ids: Seq[Long])
@@ -124,12 +125,18 @@ trait CreateTask extends EndPointModule {
   type Req = CreateTaskRequest
   type Res = CreateTaskResponse
 
-  implicit val apiRequestEncoder: Encoder[Req] = deriveEncoder
-  implicit val apiResponseDecoder: Decoder[Res] = deriveDecoder
+  val apiRequestEncoder: Encoder[Req] = deriveEncoder
+  val apiResponseDecoder: Decoder[Res] = deriveDecoder
 
   def buildRequest(req: Req): HttpRequest = {
-    val body = req.asJson.noSpaces
-    val entity = HttpEntity(ContentTypes.`application/json`, body)
-    HttpRequest(POST, Uri(s"${ChatWorkApi.baseUrl}/rooms/${req.room_id}/tasks"), entity = entity)
+    val data = collection.mutable.Map(
+      "body" -> req.body,
+      "to_ids" -> req.to_ids.map(_.toString).mkString(",")
+    )
+    req.limit.foreach(l => data.put("limit", l.toString))
+    val formData = FormData(
+      data.toMap
+    )
+    HttpRequest(POST, Uri(s"${ChatWorkApi.baseUrl}/rooms/${req.room_id}/tasks"), entity = formData.toEntity)
   }
 }
