@@ -7,8 +7,8 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import com.github.hayasshi.n2.chatwork.api._
 
-import scala.concurrent.{Await, ExecutionContext}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ Await, ExecutionContext, ExecutionContextExecutor }
+import scala.util.{ Failure, Success }
 
 object N2ChatWork extends App {
 
@@ -20,9 +20,9 @@ object N2ChatWork extends App {
   val thresholdIntensity = system.settings.config.getInt("n2.chatwork.threshold-intensity")
 
   val apiSetting = ChatWorkApiSetting(config.getString("n2.chatwork.api.token"))
-  val getMeRequest = (new ChatWorkApiClient with GetMe).request(apiSetting)
-  val getMemberListRequest = (new ChatWorkApiClient with GetMemberList).request(apiSetting)
-  val createTaskRequest = (new ChatWorkApiClient with CreateTask).request(apiSetting)
+  val getMeRequest = (new ChatWorkApiClient with GetMe).request(apiSetting) _
+  val getMemberListRequest = (new ChatWorkApiClient with GetMemberList).request(apiSetting) _
+  val createTaskRequest = (new ChatWorkApiClient with CreateTask).request(apiSetting) _
 
   import io.circe.generic.auto._
   import io.circe.parser._
@@ -33,8 +33,21 @@ object N2ChatWork extends App {
         def actionWhenEarthQuake(quake: YahooEarthQuake): Unit = {
           val intensity = quake.intensity.toInt
           val maxIntensity = quake.intensity.toInt
+          ctx.log.debug(s"RoomId($roomId), token=${apiSetting.apiToken}, thresholdIntensity=$thresholdIntensity")
           if (intensity > thresholdIntensity || maxIntensity > thresholdIntensity) {
-            ctx.log.info(s"${quake.occurrence_date} ${quake.occurrence_time} ${quake.place_name} で 震度'${quake.intensity}', 最大震度'${quake.max_intensity}' の地震が発生しました。詳細は ${quake.url} を確認してください。")
+            implicit val ec: ExecutionContextExecutor = materializer.executionContext
+            val message = s"${quake.occurrence_date} ${quake.occurrence_time} ${quake.place_name} で 震度'${quake.intensity}', 最大震度'${quake.max_intensity}' の地震が発生しました。詳細は ${quake.url} を確認してください。"
+            (for {
+              me <- getMeRequest(GetMeRequest())
+              members <- getMemberListRequest(GetMemberListRequest(roomId))
+              ids <- createTaskRequest(CreateTaskRequest(roomId, message, 0L, members.withFilter(_.account_id != me.account_id).map(_.account_id)))
+            } yield {
+              ctx.log.info(message)
+              ctx.log.info(s"Task assigned to ${ids.task_ids}")
+            }).onComplete {
+              case Failure(e) => ctx.log.error(e, "Failed chatwork api calling")
+              case Success(_) => ()
+            }
           }
         }
 

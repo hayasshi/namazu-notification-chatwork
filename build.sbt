@@ -38,10 +38,10 @@ lazy val root = (project in file(".")).
     executableScriptName := "app",
     dockerBaseImage := "openjdk:8u171-jdk-alpine3.8",
     dockerEnvVars := Map(
-      "TARGET_ROOM_ID"      -> sys.env.getOrElse("TARGET_ROOM_ID", "0"),
-      "THRESHOLD_INTENSITY" -> sys.env.getOrElse("THRESHOLD_INTENSITY", "5"),
+      "TARGET_ROOM_ID"      -> sys.env.getOrElse("TARGET_ROOM_ID", ""),
+      "THRESHOLD_INTENSITY" -> sys.env.getOrElse("THRESHOLD_INTENSITY", ""),
       "CHATWORK_API_TOKEN"  -> sys.env.getOrElse("CHATWORK_API_TOKEN", "")
-    ),
+    ).filter(_._2.nonEmpty),
     dockerUpdateLatest := true,
     mainClass in (Compile, bashScriptDefines) := Some("com.github.hayasshi.n2.chatwork.N2ChatWork"),
     // dockerExposedPorts := Seq(8080), // omit for Heroku

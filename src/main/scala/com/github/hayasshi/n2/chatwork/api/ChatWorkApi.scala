@@ -5,14 +5,14 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.{ ActorMaterializer, Materializer }
 import com.github.hayasshi.n2.chatwork.api.ChatWorkApi.ChatWorkApiResponseError
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.parser._
 import io.circe.syntax._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.reflectiveCalls
 
 object ChatWorkApi {
@@ -28,7 +28,7 @@ object ChatWorkApi {
 }
 
 case class ChatWorkApiSetting(
-  apiToken: String
+    apiToken: String
 )
 
 trait EndPointModule {
@@ -55,6 +55,7 @@ trait ChatWorkApiClient { self: EndPointModule =>
   def extractResponse(httpResponse: HttpResponse)(implicit mat: Materializer): Future[Res] = {
     implicit val ec: ExecutionContext = mat.executionContext
     httpResponse.entity.dataBytes.runReduce(_ ++ _).map { bs =>
+      println(bs.utf8String)
       if (httpResponse.status.isSuccess())
         decode[Res](bs.utf8String) match {
           case Right(r) => r
@@ -103,7 +104,7 @@ case class GetMemberListResponse(
 )
 trait GetMemberList extends EndPointModule {
   type Req = GetMemberListRequest
-  type Res = GetMemberListResponse
+  type Res = Seq[GetMemberListResponse]
 
   implicit val apiResponseDecoder: Decoder[Res] = deriveDecoder
 
