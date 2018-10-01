@@ -63,8 +63,8 @@ object N2ChatWork extends App {
         implicit val ec: ExecutionContext = ctx.materializer.executionContext
         val f = for {
           body <- ctx.request.entity.dataBytes.runReduce(_ ++ _).map(_.utf8String)
-          _ = ctx.log.debug(ctx.request.headers.mkString("\n"))
-          _ = ctx.log.debug(body)
+          _ = ctx.log.info(ctx.request.headers.mkString("\n"))
+          _ = ctx.log.info(body)
           rawThings = decode[YahooMyThings](body).fold[YahooMyThings](throw _, identity)
           things = removeTestWords(rawThings)
           _ = things.values.foreach(actionWhenEarthQuake)
