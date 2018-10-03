@@ -42,7 +42,7 @@ object N2ChatWork extends App {
                  |${quake.place_name} で 震度'${quake.intensity}', 最大震度'${quake.max_intensity}' の地震が発生しました。
                  |詳細は ${quake.url} を確認してください。
                  |
-                 |自身の安否が確認できたら「完了」してください。
+                 |身の回りの安全が確認できたら「完了」してください。
                  |完了をもって安否確認とします。""".stripMargin
             (for {
               me <- getMeRequest(GetMeRequest())
